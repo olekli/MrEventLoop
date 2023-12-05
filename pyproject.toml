@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "MrEventLoop"
+version = "0.1.0"
+authors = [
+    { name = "Ole Kliemann", email = "mail@olekliemann.de" }
+]
+description = "Very simple event loop"
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.6"
+
+[project.urls]
+homepage = "https://github.com/olekli/MrEventLoop"
+
