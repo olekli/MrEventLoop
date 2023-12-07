@@ -8,11 +8,11 @@ from mreventloop.events import Events
 
 def emits(events_attr, event_names):
   def emits_(cls):
-    setEventsAttr(cls, events_attr)
     original_init = cls.__init__
     def new_init(self, *args, **kwargs):
-      original_init(self, *args, **kwargs)
+      setEventsAttr(self, events_attr)
       setEvents(self, Events(event_names))
+      original_init(self, *args, **kwargs)
     cls.__init__ = new_init
     return cls
   return emits_

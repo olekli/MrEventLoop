@@ -25,6 +25,22 @@ class Consumer:
     print(f'onResult: {self}')
     self.result.append(result)
 
+@emits('events', [ 'request' ])
+class Integrated:
+  def __init__(self, producer):
+    self.producer = producer
+    self.result = []
+    connect(self, None, self.producer, None)
+    connect(self.producer, None, self, None)
+
+  def run(self):
+    self.events.request()
+
+  @slot
+  def onResult(self, result):
+    print(f'onResult: {self}')
+    self.result.append(result)
+
 def test_simple_consumer_producer_loop_single_connect():
   consumer = Consumer()
   producer = Producer('product')
@@ -108,3 +124,10 @@ def test_simple_consumer_producer_loop_with_forwarder_blind_connect():
 
   assert consumer.result == [ 'product', 'product' ]
   assert consumer_2.result == [ ]
+
+def test_connection_to_self_in_constructor():
+  integrated = Integrated(Producer('product'))
+  integrated.run()
+  integrated.run()
+
+  assert integrated.result == [ 'product', 'product' ]
