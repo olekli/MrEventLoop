@@ -7,7 +7,7 @@ from mreventloop.event_loop import EventLoop
 from mreventloop.connect import connect
 from mreventloop.spy import Spy
 from mreventloop.thread_safety import assert_thread
-from mreventloop.attr import setEventLoop
+from mreventloop.attr import setEventLoop, getEventLoop
 
 __all__ = [
   'Events',
@@ -19,5 +19,6 @@ __all__ = [
   'connect',
   'Spy',
   'assert_thread',
-  'setEventLoop'
+  'setEventLoop',
+  'getEventLoop',
 ]
