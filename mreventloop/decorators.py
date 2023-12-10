@@ -8,6 +8,12 @@ from mreventloop.attr import getEvents, setEventsAttr, setEvents, setEventLoopAt
 from mreventloop.names import slotToEventName
 from mreventloop.events import Events
 
+async def callback_wrapper(method, *args, **kwargs):
+  return method(*args, **kwargs)
+
+async def task_wrapper(coro):
+  return asyncio.create_task(coro)
+
 def emits(events_attr, event_names):
   def emits_(cls):
     original_init = cls.__init__
@@ -34,17 +40,24 @@ def slot(method):
   if inspect.iscoroutinefunction(method):
     def wrapper(self, *args, **kwargs):
       event_loop = getEventLoop(self)
-      if event_loop:
-        assert event_loop is asyncio.get_event_loop()
+      if event_loop is asyncio.get_event_loop():
         return asyncio.create_task(method(self, *args, **kwargs))
       else:
-        return method(self, *args, **kwargs)
+        return asyncio.run_coroutine_threadsafe(
+          task_wrapper(method(self, *args, **kwargs)),
+          event_loop
+        )
   else:
     def wrapper(self, *args, **kwargs):
       event_loop = getEventLoop(self)
       if event_loop:
-        assert event_loop is asyncio.get_event_loop()
-        return event_loop.call_soon(lambda: method(self, *args, **kwargs))
+        if event_loop is asyncio.get_event_loop():
+          return asyncio.create_task(callback_wrapper(method, self, *args, **kwargs))
+        else:
+          return asyncio.run_coroutine_threadsafe(
+            task_wrapper(callback_wrapper(method, self, *args, **kwargs)),
+            event_loop
+          )
       else:
         return method(self, *args, **kwargs)
   return wrapper
