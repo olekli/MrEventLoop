@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from mreventloop.events import Events
-from mreventloop.decorators import emits, supports_event_loop, slot, forwards
+from mreventloop.decorators import emits, has_event_loop, slot, forwards
 from mreventloop.event_loop import EventLoop
 from mreventloop.connect import connect
 from mreventloop.spy import Spy
@@ -12,7 +12,7 @@ from mreventloop.attr import setEventLoop, getEventLoop
 __all__ = [
   'Events',
   'emits',
-  'supports_event_loop',
+  'has_event_loop',
   'slot',
   'forwards',
   'EventLoop',

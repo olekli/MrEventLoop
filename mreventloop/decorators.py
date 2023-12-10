@@ -1,10 +1,15 @@
 # Copyright 2023 Ole Kliemann
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+import asyncio
+import inspect
 from functools import partial
-from mreventloop.attr import getEvents, setEventsAttr, setEvents, setEventLoopAttr, getEvent, getEventLoop
+from mreventloop.attr import getEvents, setEventsAttr, setEvents, setEventLoopAttr, getEvent, getEventLoop, setEventLoop
 from mreventloop.names import slotToEventName
 from mreventloop.events import Events
+
+async def callback_wrapper(method, *args, **kwargs):
+  return method(*args, **kwargs)
 
 def emits(events_attr, event_names):
   def emits_(cls):
@@ -17,17 +22,22 @@ def emits(events_attr, event_names):
     return cls
   return emits_
 
-def supports_event_loop(event_loop_attr):
-  def supports_event_loop_(cls):
+def has_event_loop(event_loop_attr):
+  def has_event_loop_(cls):
     setEventLoopAttr(cls, event_loop_attr)
+    original_init = cls.__init__
+    def new_init(self, *args, **kwargs):
+      setEventLoop(self, asyncio.get_event_loop())
+      original_init(self, *args, **kwargs)
+    cls.__init__ = new_init
     return cls
-  return supports_event_loop_
+  return has_event_loop_
 
 def slot(method):
   def wrapper(self, *args, **kwargs):
     event_loop = getEventLoop(self)
     if event_loop:
-      event_loop.enqueue(partial(method, self), *args, **kwargs)
+      event_loop.enqueue(method, self, *args, **kwargs)
     else:
       method(self, *args, **kwargs)
   return wrapper

@@ -1,39 +1,41 @@
 # Copyright 2023 Ole Kliemann
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-from queue import SimpleQueue
-import threading
+import asyncio
+import inspect
 from mreventloop.decorators import emits
 
 @emits('events', [ 'active', 'idle' ])
 class EventLoop:
   def __init__(self):
-    self.queue = SimpleQueue()
-    self.thread = threading.Thread(target = self.run)
-    self.closed = threading.Event()
+    self.queue = asyncio.Queue()
+    self.main = None
+    self.closed = False
 
   def enqueue(self, target, *args, **kwargs):
-    if not self.closed.is_set() or threading.current_thread().ident == self.thread.ident:
-      self.queue.put( (target, args, kwargs) )
+    assert self.queue
+    self.queue.put_nowait( (target, args, kwargs) )
 
-  def __enter__(self):
-    self.thread.start()
+  async def __aenter__(self):
+    self.main = asyncio.create_task(self.run())
     return self
 
-  def __exit__(self, exc_type, exc_value, traceback):
-    self.queue.put(None)
-    self.thread.join()
+  async def __aexit__(self, exc_type, exc_value, traceback):
+    self.closed = True
+    self.queue.put_nowait(None)
+    if self.main and not self.main.done():
+      await self.main
 
-  def run(self):
+  async def run(self):
     self.events.idle()
-    while True:
-      if self.closed.is_set() and self.queue.empty():
-        break
-      item = self.queue.get()
+    while not (self.closed and self.queue.empty()):
+      item = await self.queue.get()
       if item == None:
-        self.closed.set()
         continue
       self.events.active()
       target, args, kwargs = item
-      target(*args, **kwargs)
+      if inspect.iscoroutinefunction(target):
+        await target(*args, **kwargs)
+      else:
+        target(*args, **kwargs)
       self.events.idle()
