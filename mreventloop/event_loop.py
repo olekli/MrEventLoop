@@ -3,11 +3,16 @@
 
 import asyncio
 import inspect
+import logging
+import traceback
 from mreventloop.decorators import emits
+
+logger = logging.getLogger(__name__)
 
 @emits('events', [ 'active', 'idle' ])
 class EventLoop:
-  def __init__(self):
+  def __init__(self, exit_on_exception = True):
+    self.exit_on_exception = exit_on_exception
     self.queue = asyncio.Queue()
     self.main = None
     self.closed = False
@@ -34,8 +39,14 @@ class EventLoop:
         continue
       self.events.active()
       target, args, kwargs = item
-      if inspect.iscoroutinefunction(target):
-        await target(*args, **kwargs)
-      else:
-        target(*args, **kwargs)
+      try:
+        if inspect.iscoroutinefunction(target):
+          await target(*args, **kwargs)
+        else:
+          target(*args, **kwargs)
+      except Exception as e:
+        logger.error(traceback.format_exc())
+        if self.exit_on_exception:
+          asyncio.get_event_loop().stop()
+          return
       self.events.idle()
