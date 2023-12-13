@@ -18,6 +18,7 @@ class EventLoopAsync:
     self.queue = queue.Queue()
     self.thread = threading.Thread(target = self.runThread)
     self.closed = threading.Event()
+    self.asyncio_event_loop = None
 
   def enqueue(self, target, *args, **kwargs):
     self.queue.put( (target, args, kwargs) )
@@ -32,7 +33,8 @@ class EventLoopAsync:
     self.thread.join()
 
   def runThread(self):
-    asyncio.set_event_loop(asyncio.new_event_loop())
+    self.asyncio_event_loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(self.asyncio_event_loop)
     asyncio.run(self.runAsyncio())
 
   async def runAsyncio(self):
