@@ -47,24 +47,6 @@ class Consumer:
   async def onProcessedResult(self, result):
     self.content.append(result)
 
-@has_event_loop('event_loop')
-class NotReentrant:
-  def __init__(self):
-    self.value = 0
-    self.control = 0
-    self.event = asyncio.Event()
-
-  @slot
-  async def inc(self):
-    self.value += 1
-
-  def unblock(self):
-    self.event.set()
-
-  @slot
-  async def block(self):
-    await self.event.wait()
-
 @pytest.mark.asyncio
 async def test_pipeline_one_loop_unordered():
   producer = Producer()
@@ -75,7 +57,7 @@ async def test_pipeline_one_loop_unordered():
   connect(processor_even, None, processor_odd, None)
   connect(processor_odd, None, consumer, None)
 
-  async with EventLoop() as event_loop:
+  with EventLoop() as event_loop:
     setEventLoop(producer, event_loop)
     setEventLoop(processor_even, event_loop)
     setEventLoop(processor_odd, event_loop)
@@ -122,8 +104,8 @@ async def test_pipeline_one_loop_ordered():
   for i in range(0, 10):
     producer.produce()
 
-  await event_loop.__aenter__()
-  await event_loop.__aexit__(None, None, None)
+  event_loop.__enter__()
+  event_loop.__exit__(None, None, None)
 
   while tasks := [ t for t in asyncio.all_tasks() if t is not asyncio.current_task() ]:
     await asyncio.gather(*tasks)
@@ -151,7 +133,7 @@ async def test_pipeline_multiple_loops():
   connect(processor_even, None, processor_odd, None)
   connect(processor_odd, None, consumer, None)
 
-  async with EventLoop() as event_loop_2, EventLoop() as event_loop_1:
+  with EventLoop() as event_loop_2, EventLoop() as event_loop_1:
     setEventLoop(producer, event_loop_1)
     setEventLoop(processor_even, event_loop_1)
     setEventLoop(processor_odd, event_loop_2)
@@ -177,21 +159,3 @@ async def test_pipeline_multiple_loops():
     'product odd 9',
   ]:
     assert item in consumer.content
-
-@pytest.mark.asyncio
-async def test_event_loop_does_not_reenter():
-  obj = NotReentrant()
-  assert obj.value == 0
-
-  async with EventLoop() as event_loop:
-    setEventLoop(obj, event_loop)
-    obj.block()
-    obj.inc()
-    obj.inc()
-    assert obj.value == 0
-    assert len(asyncio.all_tasks()) == 2
-    obj.unblock()
-
-  while tasks := [ t for t in asyncio.all_tasks() if t is not asyncio.current_task() ]:
-    await asyncio.gather(*tasks)
-  assert obj.value == 2
