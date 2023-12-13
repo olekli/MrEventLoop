@@ -4,6 +4,7 @@
 from mreventloop.events import Events
 from mreventloop.decorators import emits, has_event_loop, slot, forwards
 from mreventloop.event_loop import EventLoop
+from mreventloop.event_loop_async import EventLoopAsync
 from mreventloop.connect import connect
 from mreventloop.spy import Spy
 from mreventloop.thread_safety import assert_thread
@@ -16,6 +17,7 @@ __all__ = [
   'slot',
   'forwards',
   'EventLoop',
+  'EventLoopAsync',
   'connect',
   'Spy',
   'assert_thread',
