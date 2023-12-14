@@ -28,6 +28,16 @@ def slot(method):
       method(self, *args, **kwargs)
   return wrapper
 
+def forwardSlot(self, event_name, *args, **kwargs):
+  def wrapper(*args, **kwargs):
+    event_loop = getEventLoop(self)
+    event = getEvent(self, event_name)
+    if event_loop:
+      event_loop.enqueue(event, *args, **kwargs)
+    else:
+      event(*args, **kwargs)
+  return wrapper
+
 def forwards(slot_names, event_names = None):
   def forwards_(cls, event_names = event_names):
     if not event_names:
@@ -41,7 +51,7 @@ def forwards(slot_names, event_names = None):
     def new_init(self, *args, **kwargs):
       original_init(self, *args, **kwargs)
       for slot_name, event_name in zip(slot_names, event_names):
-        setattr(self, slot_name, getEvent(self, event_name))
+        setattr(self, slot_name, forwardSlot(self, event_name))
     cls.__init__ = new_init
     return cls
   return forwards_
