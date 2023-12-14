@@ -56,4 +56,3 @@ def has_event_loop_thread(event_loop_attr):
     cls.__init__ = new_init
     return cls
   return has_event_loop_
-

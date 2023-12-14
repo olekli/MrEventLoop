@@ -96,44 +96,6 @@ async def test_pipeline_one_loop_async_unordered():
     assert item in consumer.content
 
 @pytest.mark.asyncio
-async def test_pipeline_one_async_loop_ordered():
-  producer = Producer()
-  processor_even = ProcessorEven()
-  processor_odd =  ProcessorOddAsync()
-  consumer = Consumer()
-  connect(producer, None, processor_even, None)
-  connect(processor_even, None, processor_odd, None)
-  connect(processor_odd, None, consumer, None)
-
-  event_loop = EventLoopAsync()
-  setEventLoop(producer, event_loop)
-  setEventLoop(processor_even, event_loop)
-  setEventLoop(processor_odd, event_loop)
-  setEventLoop(consumer, event_loop)
-
-  for i in range(0, 10):
-    producer.produce()
-
-  await event_loop.__aenter__()
-  await event_loop.__aexit__(None, None, None)
-
-  while tasks := [ t for t in asyncio.all_tasks() if t is not asyncio.current_task() ]:
-    await asyncio.gather(*tasks)
-
-  assert consumer.content == [
-    'product even 0',
-    'product even 2',
-    'product even 4',
-    'product even 6',
-    'product even 8',
-    'product odd 1',
-    'product odd 3',
-    'product odd 5',
-    'product odd 7',
-    'product odd 9',
-  ]
-
-@pytest.mark.asyncio
 async def test_pipeline_multiple_loops_async():
   producer = Producer()
   processor_even = ProcessorEven()
@@ -192,6 +154,8 @@ async def test_pipeline_multiple_loops_some_async():
 
         for i in range(10):
           producer.produce()
+    await asyncio.sleep(0.1)
+
 
   while tasks := [ t for t in asyncio.all_tasks() if t is not asyncio.current_task() ]:
     await asyncio.gather(*tasks)
@@ -227,6 +191,7 @@ async def test_pipeline_multiple_loops_some_async_defaults():
         async with producer.event_loop:
           for i in range(10):
             producer.produce()
+    await asyncio.sleep(0.1)
 
   while tasks := [ t for t in asyncio.all_tasks() if t is not asyncio.current_task() ]:
     await asyncio.gather(*tasks)

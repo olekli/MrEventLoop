@@ -10,19 +10,35 @@ from mreventloop.attr import setEventLoopAttr, setEventLoop
 
 logger = logging.getLogger(__name__)
 
+def has_event_loop():
+  try:
+    asyncio.get_event_loop_policy().get_event_loop()
+    return True
+  except RuntimeError:
+    return False
+
 @emits('events', [ 'active', 'idle' ])
 class EventLoopAsync:
   def __init__(self, exit_on_exception = True):
     self.exit_on_exception = exit_on_exception
-    self.queue = asyncio.Queue()
+    self.queue = None
+    self.asyncio_event_loop = None
     self.main = None
     self.closed = False
 
   def enqueue(self, target, *args, **kwargs):
     assert self.queue
-    self.queue.put_nowait( (target, args, kwargs) )
+    assert self.asyncio_event_loop
+    if has_event_loop() and (asyncio.get_event_loop() is self.asyncio_event_loop):
+      self.queue.put_nowait( (target, args, kwargs) )
+    else:
+      self.asyncio_event_loop.call_soon_threadsafe(
+        lambda: self.queue.put_nowait( (target, args, kwargs) )
+      )
 
   async def __aenter__(self):
+    self.asyncio_event_loop = asyncio.get_event_loop()
+    self.queue = asyncio.Queue()
     self.main = asyncio.create_task(self.run())
     return self
 
@@ -48,7 +64,6 @@ class EventLoopAsync:
       except Exception as e:
         logger.error(traceback.format_exc())
         if self.exit_on_exception:
-          asyncio.get_event_loop().stop()
           return
       self.events.idle()
 
@@ -62,4 +77,3 @@ def has_event_loop_async(event_loop_attr):
     cls.__init__ = new_init
     return cls
   return has_event_loop_
-
