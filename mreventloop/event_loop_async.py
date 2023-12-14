@@ -2,8 +2,6 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import asyncio
-import threading
-import queue
 import inspect
 import logging
 import traceback
@@ -15,32 +13,28 @@ logger = logging.getLogger(__name__)
 class EventLoopAsync:
   def __init__(self, exit_on_exception = True):
     self.exit_on_exception = exit_on_exception
-    self.queue = queue.Queue()
-    self.thread = threading.Thread(target = self.runThread)
-    self.closed = threading.Event()
-    self.asyncio_event_loop = None
+    self.queue = asyncio.Queue()
+    self.main = None
+    self.closed = False
 
   def enqueue(self, target, *args, **kwargs):
-    self.queue.put( (target, args, kwargs) )
+    assert self.queue
+    self.queue.put_nowait( (target, args, kwargs) )
 
-  def __enter__(self):
-    self.thread.start()
+  async def __aenter__(self):
+    self.main = asyncio.create_task(self.run())
     return self
 
-  def __exit__(self, exc_type, exc_value, traceback):
-    self.closed.set()
-    self.queue.put(None)
-    self.thread.join()
+  async def __aexit__(self, exc_type, exc_value, traceback):
+    self.closed = True
+    self.queue.put_nowait(None)
+    if self.main and not self.main.done():
+      await self.main
 
-  def runThread(self):
-    self.asyncio_event_loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(self.asyncio_event_loop)
-    asyncio.run(self.runAsyncio())
-
-  async def runAsyncio(self):
+  async def run(self):
     self.events.idle()
-    while not (self.closed.is_set() and self.queue.empty()):
-      item = self.queue.get()
+    while not (self.closed and self.queue.empty()):
+      item = await self.queue.get()
       if item == None:
         continue
       self.events.active()

@@ -10,7 +10,7 @@ from mreventloop.decorators import emits
 logger = logging.getLogger(__name__)
 
 @emits('events', [ 'active', 'idle' ])
-class EventLoop:
+class EventLoopThread:
   def __init__(self, exit_on_exception = True):
     self.exit_on_exception = exit_on_exception
     self.queue = queue.Queue()

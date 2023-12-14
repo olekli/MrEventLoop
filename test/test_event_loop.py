@@ -3,7 +3,7 @@
 
 import asyncio
 import pytest
-from mreventloop import emits, slot, forwards, connect, EventLoopAsync, EventLoop, setEventLoop, has_event_loop
+from mreventloop import emits, slot, forwards, connect, EventLoopAsync, EventLoopThread, setEventLoop, has_event_loop
 
 @has_event_loop('event_loop')
 @emits('events', [ 'result' ])
@@ -39,6 +39,17 @@ class ProcessorOdd:
       self.events.result(result, number)
 
 @has_event_loop('event_loop')
+@forwards([ 'onProcessedResult' ])
+@emits('events', [ 'processed_result', 'result' ])
+class ProcessorOddAsync:
+  @slot
+  def onResult(self, result, number):
+    if (int(number / 2) * 2) != number:
+      self.events.processed_result(f'{result} odd {number}')
+    else:
+      self.events.result(result, number)
+
+@has_event_loop('event_loop')
 class Consumer:
   def __init__(self):
     self.content = []
@@ -51,13 +62,13 @@ class Consumer:
 async def test_pipeline_one_loop_async_unordered():
   producer = Producer()
   processor_even = ProcessorEven()
-  processor_odd =  ProcessorOdd()
+  processor_odd =  ProcessorOddAsync()
   consumer = Consumer()
   connect(producer, None, processor_even, None)
   connect(processor_even, None, processor_odd, None)
   connect(processor_odd, None, consumer, None)
 
-  with EventLoopAsync() as event_loop:
+  async with EventLoopAsync() as event_loop:
     setEventLoop(producer, event_loop)
     setEventLoop(processor_even, event_loop)
     setEventLoop(processor_odd, event_loop)
@@ -88,9 +99,8 @@ async def test_pipeline_one_loop_async_unordered():
 async def test_pipeline_one_async_loop_ordered():
   producer = Producer()
   processor_even = ProcessorEven()
-  processor_odd =  ProcessorOdd()
+  processor_odd =  ProcessorOddAsync()
   consumer = Consumer()
-  event_loop = EventLoop()
   connect(producer, None, processor_even, None)
   connect(processor_even, None, processor_odd, None)
   connect(processor_odd, None, consumer, None)
@@ -104,8 +114,8 @@ async def test_pipeline_one_async_loop_ordered():
   for i in range(0, 10):
     producer.produce()
 
-  event_loop.__enter__()
-  event_loop.__exit__(None, None, None)
+  await event_loop.__aenter__()
+  await event_loop.__aexit__(None, None, None)
 
   while tasks := [ t for t in asyncio.all_tasks() if t is not asyncio.current_task() ]:
     await asyncio.gather(*tasks)
@@ -127,20 +137,22 @@ async def test_pipeline_one_async_loop_ordered():
 async def test_pipeline_multiple_loops_async():
   producer = Producer()
   processor_even = ProcessorEven()
-  processor_odd =  ProcessorOdd()
+  processor_odd =  ProcessorOddAsync()
   consumer = Consumer()
   connect(producer, None, processor_even, None)
   connect(processor_even, None, processor_odd, None)
   connect(processor_odd, None, consumer, None)
 
-  with EventLoopAsync() as event_loop_2, EventLoopAsync() as event_loop_1:
-    setEventLoop(producer, event_loop_1)
-    setEventLoop(processor_even, event_loop_1)
-    setEventLoop(processor_odd, event_loop_2)
-    setEventLoop(consumer, event_loop_2)
+  async with EventLoopAsync() as event_loop_3:
+    async with EventLoopAsync() as event_loop_2:
+      async with EventLoopAsync() as event_loop_1:
+        setEventLoop(producer, event_loop_1)
+        setEventLoop(processor_even, event_loop_1)
+        setEventLoop(processor_odd, event_loop_2)
+        setEventLoop(consumer, event_loop_3)
 
-    for i in range(10):
-      producer.produce()
+        for i in range(10):
+          producer.produce()
 
   while tasks := [ t for t in asyncio.all_tasks() if t is not asyncio.current_task() ]:
     await asyncio.gather(*tasks)
@@ -170,14 +182,16 @@ async def test_pipeline_multiple_loops_some_async():
   connect(processor_even, None, processor_odd, None)
   connect(processor_odd, None, consumer, None)
 
-  with EventLoopAsync() as event_loop_3, EventLoop() as event_loop_2, EventLoopAsync() as event_loop_1:
-    setEventLoop(producer, event_loop_1)
-    setEventLoop(processor_even, event_loop_1)
-    setEventLoop(processor_odd, event_loop_2)
-    setEventLoop(consumer, event_loop_3)
+  async with EventLoopAsync() as event_loop_3:
+    with EventLoopThread() as event_loop_2:
+      async with EventLoopAsync() as event_loop_1:
+        setEventLoop(producer, event_loop_1)
+        setEventLoop(processor_even, event_loop_1)
+        setEventLoop(processor_odd, event_loop_2)
+        setEventLoop(consumer, event_loop_3)
 
-    for i in range(10):
-      producer.produce()
+        for i in range(10):
+          producer.produce()
 
   while tasks := [ t for t in asyncio.all_tasks() if t is not asyncio.current_task() ]:
     await asyncio.gather(*tasks)
