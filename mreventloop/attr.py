@@ -30,7 +30,4 @@ def getEventLoop(cls):
   return getattr(cls, getEventLoopAttr(cls), None)
 
 def setEventLoop(cls, event_loop):
-  current = getEventLoop(cls)
-  if current:
-    assert type(current) is type(event_loop), 'Invalid event loop assigned'
   setattr(cls, getEventLoopAttr(cls), event_loop)
