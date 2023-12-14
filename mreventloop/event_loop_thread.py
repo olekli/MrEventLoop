@@ -6,6 +6,7 @@ import queue
 import logging
 import traceback
 from mreventloop.decorators import emits
+from mreventloop.attr import setEventLoopAttr, setEventLoop
 
 logger = logging.getLogger(__name__)
 
@@ -44,3 +45,15 @@ class EventLoopThread:
         if self.exit_on_exception:
           return
       self.events.idle()
+
+def has_event_loop_thread(event_loop_attr):
+  def has_event_loop_(cls):
+    setEventLoopAttr(cls, event_loop_attr)
+    original_init = cls.__init__
+    def new_init(self, *args, **kwargs):
+      setEventLoop(self, EventLoopThread())
+      original_init(self, *args, **kwargs)
+    cls.__init__ = new_init
+    return cls
+  return has_event_loop_
+

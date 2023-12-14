@@ -6,6 +6,7 @@ import inspect
 import logging
 import traceback
 from mreventloop.decorators import emits
+from mreventloop.attr import setEventLoopAttr, setEventLoop
 
 logger = logging.getLogger(__name__)
 
@@ -50,3 +51,15 @@ class EventLoopAsync:
           asyncio.get_event_loop().stop()
           return
       self.events.idle()
+
+def has_event_loop_async(event_loop_attr):
+  def has_event_loop_(cls):
+    setEventLoopAttr(cls, event_loop_attr)
+    original_init = cls.__init__
+    def new_init(self, *args, **kwargs):
+      setEventLoop(self, EventLoopAsync())
+      original_init(self, *args, **kwargs)
+    cls.__init__ = new_init
+    return cls
+  return has_event_loop_
+

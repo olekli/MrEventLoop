@@ -8,9 +8,6 @@ from mreventloop.attr import getEvents, setEventsAttr, setEvents, setEventLoopAt
 from mreventloop.names import slotToEventName
 from mreventloop.events import Events
 
-async def callback_wrapper(method, *args, **kwargs):
-  return method(*args, **kwargs)
-
 def emits(events_attr, event_names):
   def emits_(cls):
     original_init = cls.__init__
@@ -21,17 +18,6 @@ def emits(events_attr, event_names):
     cls.__init__ = new_init
     return cls
   return emits_
-
-def has_event_loop(event_loop_attr):
-  def has_event_loop_(cls):
-    setEventLoopAttr(cls, event_loop_attr)
-    original_init = cls.__init__
-    def new_init(self, *args, **kwargs):
-      setEventLoop(self, asyncio.get_event_loop())
-      original_init(self, *args, **kwargs)
-    cls.__init__ = new_init
-    return cls
-  return has_event_loop_
 
 def slot(method):
   def wrapper(self, *args, **kwargs):
