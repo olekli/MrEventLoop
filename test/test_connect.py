@@ -25,6 +25,25 @@ class Consumer:
     print(f'onResult: {self}')
     self.result.append(result)
 
+@forwards([ 'onRequest' ])
+@emits('events', [ 'result', 'request' ])
+class ProducerForward:
+  def __init__(self, product):
+    self.product = product
+
+  @slot
+  def onRequest(self):
+    print(f'onRequest: {self}')
+    self.events.result(self.product)
+
+class RequestSpy:
+  def __init__(self):
+    self.content = []
+
+  @slot
+  def onRequest(self):
+    self.content.append('foo')
+
 @emits('events', [ 'request' ])
 class Integrated:
   def __init__(self, producer):
@@ -131,3 +150,15 @@ def test_connection_to_self_in_constructor():
   integrated.run()
 
   assert integrated.result == [ 'product', 'product' ]
+
+def test_forwarding_does_not_override_impl():
+  producer = ProducerForward('product')
+  spy = RequestSpy()
+  consumer = Consumer()
+  connect(producer, 'request', spy, 'onRequest')
+  connect(producer, 'result', consumer, 'onResult')
+
+  producer.onRequest()
+
+  assert spy.content == []
+  assert consumer.result == [ 'product' ]

@@ -51,7 +51,8 @@ def forwards(slot_names, event_names = None):
     def new_init(self, *args, **kwargs):
       original_init(self, *args, **kwargs)
       for slot_name, event_name in zip(slot_names, event_names):
-        setattr(self, slot_name, forwardSlot(self, event_name))
+        if not hasattr(self, slot_name):
+          setattr(self, slot_name, forwardSlot(self, event_name))
     cls.__init__ = new_init
     return cls
   return forwards_
