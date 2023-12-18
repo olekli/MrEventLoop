@@ -1,7 +1,7 @@
 # Copyright 2023 Ole Kliemann
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-from mreventloop import emits, slot, forwards, connect
+from mreventloop import emits, slot, forwards, connect, emits_bilaterally
 
 @forwards([ 'onResult' ])
 @emits('events', [ 'result' ])
@@ -59,6 +59,23 @@ class Integrated:
   def onResult(self, result):
     print(f'onResult: {self}')
     self.result.append(result)
+
+@emits_bilaterally('events', [ 'request' ])
+class BilateralSender:
+  def __init__(self):
+    pass
+
+  @slot
+  def sendRequest(self, req):
+    return self.events.request(req)
+
+class BilateralReceiver:
+  def __init__(self):
+    pass
+
+  @slot
+  def onRequest(self, req):
+    return req[::-1]
 
 def test_simple_consumer_producer_loop_single_connect():
   consumer = Consumer()
@@ -162,3 +179,11 @@ def test_forwarding_does_not_override_impl():
 
   assert spy.content == []
   assert consumer.result == [ 'product' ]
+
+def test_connected_bilateral_return_value():
+  sender = BilateralSender()
+  receiver = BilateralReceiver()
+
+  connect(sender, 'request', receiver, 'onRequest')
+
+  assert sender.sendRequest('foo') == 'oof'

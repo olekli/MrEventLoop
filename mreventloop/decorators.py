@@ -7,6 +7,7 @@ from functools import partial
 from mreventloop.attr import getEvents, setEventsAttr, setEvents, setEventLoopAttr, getEvent, getEventLoop, setEventLoop
 from mreventloop.names import slotToEventName
 from mreventloop.events import Events
+from mreventloop.bilateral_events import BilateralEvents
 
 def emits(events_attr, event_names):
   def emits_(cls):
@@ -14,6 +15,17 @@ def emits(events_attr, event_names):
     def new_init(self, *args, **kwargs):
       setEventsAttr(self, events_attr)
       setEvents(self, Events(event_names))
+      original_init(self, *args, **kwargs)
+    cls.__init__ = new_init
+    return cls
+  return emits_
+
+def emits_bilaterally(events_attr, event_names):
+  def emits_(cls):
+    original_init = cls.__init__
+    def new_init(self, *args, **kwargs):
+      setEventsAttr(self, events_attr)
+      setEvents(self, BilateralEvents(event_names))
       original_init(self, *args, **kwargs)
     cls.__init__ = new_init
     return cls

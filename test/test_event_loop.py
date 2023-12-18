@@ -3,7 +3,7 @@
 
 import asyncio
 import pytest
-from mreventloop import emits, slot, forwards, connect, EventLoop, setEventLoop, has_event_loop
+from mreventloop import emits, slot, forwards, connect, EventLoop, setEventLoop, has_event_loop, emits_bilaterally
 
 @has_event_loop('event_loop')
 @emits('events', [ 'result' ])
@@ -70,6 +70,45 @@ class AsyncSlotWithReturnValue:
   async def call(self):
     await asyncio.sleep(0.01)
     return 'foo'
+
+@emits_bilaterally('events', [ 'request' ])
+@has_event_loop('event_loop')
+class BilateralSender:
+  def __init__(self):
+    pass
+
+  @slot
+  async def sendRequest(self, req):
+    return await self.events.request(req)
+
+@has_event_loop('event_loop')
+class BilateralReceiver:
+  def __init__(self):
+    pass
+
+  @slot
+  def onRequest(self, req):
+    return req[::-1]
+
+@emits_bilaterally('events', [ 'request' ])
+@has_event_loop('event_loop')
+class BilateralSenderAsync:
+  def __init__(self):
+    pass
+
+  @slot
+  async def sendRequest(self, req):
+    return await self.events.request(req)
+
+@has_event_loop('event_loop')
+class BilateralReceiverAsync:
+  def __init__(self):
+    pass
+
+  @slot
+  async def onRequest(self, req):
+    await asyncio.sleep(0.01)
+    return req[::-1]
 
 @pytest.mark.asyncio
 async def test_pipeline_one_loop_async_unordered():
@@ -199,3 +238,25 @@ async def test_slot_return_async():
     assert result != 'foo'
     awaited_result = await result
     assert awaited_result == 'foo'
+
+@pytest.mark.asyncio
+async def test_connected_bilateral_return_value():
+  sender = BilateralSender()
+  receiver = BilateralReceiver()
+
+  connect(sender, 'request', receiver, 'onRequest')
+
+  async with sender.event_loop, receiver.event_loop:
+    result = sender.sendRequest('foo')
+    assert await result == 'oof'
+
+@pytest.mark.asyncio
+async def test_connected_bilateral_return_value_async():
+  sender = BilateralSenderAsync()
+  receiver = BilateralReceiverAsync()
+
+  connect(sender, 'request', receiver, 'onRequest')
+
+  async with sender.event_loop, receiver.event_loop:
+    result = sender.sendRequest('foo')
+    assert await result == 'oof'
