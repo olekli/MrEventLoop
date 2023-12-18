@@ -58,6 +58,19 @@ class Consumer:
   async def onProcessedResult(self, result):
     self.content.append(result)
 
+@has_event_loop('event_loop')
+class SlotWithReturnValue:
+  @slot
+  def call(self):
+    return 'foo'
+
+@has_event_loop('event_loop')
+class AsyncSlotWithReturnValue:
+  @slot
+  async def call(self):
+    await asyncio.sleep(0.01)
+    return 'foo'
+
 @pytest.mark.asyncio
 async def test_pipeline_one_loop_async_unordered():
   producer = Producer()
@@ -168,3 +181,21 @@ async def test_pipeline_multiple_loops_async_defaults():
     'product odd 9',
   ]:
     assert item in consumer.content
+
+@pytest.mark.asyncio
+async def test_slot_return():
+  a = SlotWithReturnValue()
+  async with a.event_loop:
+    result = a.call()
+    assert result != 'foo'
+    awaited_result = await result
+    assert awaited_result == 'foo'
+
+@pytest.mark.asyncio
+async def test_slot_return_async():
+  a = AsyncSlotWithReturnValue()
+  async with a.event_loop:
+    result = a.call()
+    assert result != 'foo'
+    awaited_result = await result
+    assert awaited_result == 'foo'

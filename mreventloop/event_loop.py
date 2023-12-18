@@ -2,11 +2,11 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import asyncio
-import inspect
 import logging
 import traceback
 from mreventloop.decorators import emits
 from mreventloop.attr import setEventLoopAttr, setEventLoop
+from mreventloop.slot_call import SlotCall
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +31,9 @@ class EventLoop:
     assert self.asyncio_event_loop
     assert has_asyncio_event_loop()
     assert asyncio.get_event_loop() is self.asyncio_event_loop
-    self.queue.put_nowait( (target, args, kwargs) )
+    slot_call = SlotCall(target, args, kwargs)
+    self.queue.put_nowait(slot_call)
+    return slot_call
 
   async def __aenter__(self):
     self.asyncio_event_loop = asyncio.get_event_loop()
@@ -48,16 +50,12 @@ class EventLoop:
   async def run(self):
     self.events.idle()
     while not (self.closed and self.queue.empty()):
-      item = await self.queue.get()
-      if item == None:
+      slot_call = await self.queue.get()
+      if slot_call == None:
         continue
       self.events.active()
-      target, args, kwargs = item
       try:
-        if inspect.iscoroutinefunction(target):
-          await target(*args, **kwargs)
-        else:
-          target(*args, **kwargs)
+        await slot_call._run()
       except Exception as e:
         logger.error(traceback.format_exc())
         if self.exit_on_exception:

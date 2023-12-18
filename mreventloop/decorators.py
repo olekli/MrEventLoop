@@ -23,9 +23,9 @@ def slot(method):
   def wrapper(self, *args, **kwargs):
     event_loop = getEventLoop(self)
     if event_loop:
-      event_loop.enqueue(method, self, *args, **kwargs)
+      return event_loop.enqueue(method, self, *args, **kwargs)
     else:
-      method(self, *args, **kwargs)
+      return method(self, *args, **kwargs)
   return wrapper
 
 def forwardSlot(self, event_name, *args, **kwargs):
