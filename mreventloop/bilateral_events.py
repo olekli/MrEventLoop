@@ -1,6 +1,10 @@
 # Copyright 2023 Ole Kliemann
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 class BilateralEvent:
   def __init__(self):
     self.listener = None

@@ -10,3 +10,6 @@ def eventToSlotName(event_name):
 def slotToEventName(slot_name):
   segments = re.split(r'(?=[A-Z])', slot_name)
   return '_'.join([ segment.lower() for segment in segments[1:] ])
+
+def eventToRequestName(event_name):
+  return eventToSlotName(f'request_{event_name}')
