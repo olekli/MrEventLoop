@@ -3,6 +3,7 @@
 
 import asyncio
 import inspect
+from mreventloop.make_awaitable import make_awaitable
 
 class SlotCall:
   def __init__(self, target, args, kwargs):
@@ -17,8 +18,5 @@ class SlotCall:
     return self._result
 
   async def _run(self):
-    if inspect.iscoroutinefunction(self._target):
-      self._result = await self._target(*self._args, **self._kwargs)
-    else:
-      self._result = self._target(*self._args, **self._kwargs)
+    self._result = await make_awaitable(self._target(*self._args, **self._kwargs))
     self._result_ready.set()
