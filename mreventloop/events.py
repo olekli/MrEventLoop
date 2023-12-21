@@ -12,6 +12,9 @@ class Event:
   def removeListener(self, slot):
     self.listeners.remove(slot)
 
+  def clearListeners(self):
+    self.listeners = []
+
   def __call__(self, *args, **kwargs):
     for slot in self.listeners:
       slot(*args, **kwargs)
