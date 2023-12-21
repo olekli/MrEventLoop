@@ -5,7 +5,7 @@ from mreventloop.events import Events
 from mreventloop.bilateral_events import BilateralEvents
 from mreventloop.decorators import emits, slot, forwards, emits_bilaterally
 from mreventloop.event_loop import EventLoop, has_event_loop
-from mreventloop.connect import connect
+from mreventloop.connect import connect, disconnect
 from mreventloop.spy import Spy
 from mreventloop.attr import setEventLoop, getEventLoop
 from mreventloop.client import Client
@@ -22,6 +22,7 @@ __all__ = [
   'EventLoopThread',
   'EventLoopAsync',
   'connect',
+  'disconnect',
   'Spy',
   'setEventLoop',
   'getEventLoop',

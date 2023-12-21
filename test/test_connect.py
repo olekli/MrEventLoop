@@ -1,7 +1,7 @@
 # Copyright 2023 Ole Kliemann
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-from mreventloop import emits, slot, forwards, connect, emits_bilaterally
+from mreventloop import emits, slot, forwards, connect, emits_bilaterally, disconnect
 
 @forwards([ 'onResult' ])
 @emits('events', [ 'result' ])
@@ -76,6 +76,23 @@ class BilateralReceiver:
   @slot
   def onRequest(self, req):
     return req[::-1]
+
+@emits('events', [ 'request' ])
+class Sender:
+  def __init__(self):
+    pass
+
+  @slot
+  def sendRequest(self, req):
+    return self.events.request(req)
+
+class Receiver:
+  def __init__(self):
+    self.content = []
+
+  @slot
+  def onRequest(self, req):
+    self.content.append(req)
 
 def test_simple_consumer_producer_loop_single_connect():
   consumer = Consumer()
@@ -187,3 +204,31 @@ def test_connected_bilateral_return_value():
   connect(sender, 'request', receiver, 'onRequest')
 
   assert sender.sendRequest('foo') == 'oof'
+
+def test_disconnect():
+  sender = Sender()
+  receiver = Receiver()
+
+  connect(sender, 'request', receiver, 'onRequest')
+
+  sender.sendRequest('foo')
+
+  assert receiver.content == [ 'foo' ]
+
+  disconnect(sender, 'request')
+
+  sender.sendRequest('bar')
+
+  assert receiver.content == [ 'foo' ]
+
+def test_disconnect_bilateral():
+  sender = BilateralSender()
+  receiver = BilateralReceiver()
+
+  connect(sender, 'request', receiver, 'onRequest')
+
+  assert sender.sendRequest('foo') == 'oof'
+
+  disconnect(sender, 'request')
+
+  assert sender.sendRequest('bar') == None

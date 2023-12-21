@@ -1,7 +1,7 @@
 # Copyright 2023 Ole Kliemann
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-from mreventloop.attr import getEvents, setEventsAttr, setEvents, setEventLoopAttr
+from mreventloop.attr import getEvents, getEvent, setEventsAttr, setEvents, setEventLoopAttr
 from mreventloop.names import eventToSlotName
 
 def connect_(emitter, event_name, receiver, slot_name):
@@ -29,3 +29,6 @@ def connect(emitter, event_name, receiver, slot_name):
 
   else:
     assert False
+
+def disconnect(emitter, event_name):
+  getEvent(emitter, event_name).clearListeners()

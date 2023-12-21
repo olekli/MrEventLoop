@@ -17,9 +17,14 @@ class BilateralEvent:
     if self.listener.__self__ is slot.__self__ and self.listener.__func__ is slot.__func__:
       self.listener = None
 
+  def clearListeners(self):
+    self.listener = None
+
   def __call__(self, *args, **kwargs):
-    assert callable(self.listener)
-    return self.listener(*args, **kwargs)
+    if callable(self.listener):
+      return self.listener(*args, **kwargs)
+    else:
+      return None
 
 class BilateralEvents:
   def __init__(self, event_names):
