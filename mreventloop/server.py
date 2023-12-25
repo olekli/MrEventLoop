@@ -36,14 +36,14 @@ class Server:
 
   @slot
   def stop(self):
-    print('stop')
     assert self.stop_event
     self.stop_event.set()
-    print('stopped')
 
   async def run(self):
+    await self.event_loop.__aenter__()
     try:
       self.stop_event = asyncio.Event()
+      self.socket.bind(self.socket_path)
       while not self.stop_event.is_set():
         try:
           request = await asyncio.wait_for(self.socket.recv_string(), timeout = 1)
@@ -55,17 +55,16 @@ class Server:
         await self.socket.send_string(response)
     except Exception as e:
       logger.error(traceback.format_exc())
-      return
+    self.socket.close()
+    await self.event_loop.__aexit__(None, None, None)
 
   async def __aenter__(self):
-    await self.event_loop.__aenter__()
-    self.socket.bind(self.socket_path)
     self.main = asyncio.create_task(self.run())
     return self
 
   async def __aexit__(self, exc_type, exc_value, traceback):
-    print('__aexit__')
     self.stop()
     await self.main
-    self.socket.close()
-    return await self.event_loop.__aexit__(exc_type, exc_value, traceback)
+
+  def __await__(self):
+    yield from self.main.__await__()
