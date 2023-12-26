@@ -27,6 +27,10 @@ def connect(emitter, event_name, receiver, slot_name):
   elif isinstance(event_name, str) and isinstance(slot_name, str):
     connect_(emitter, event_name, receiver, slot_name)
 
+  elif callable(slot_name):
+    event = getattr(getEvents(emitter), event_name)
+    event.addListener(slot_name)
+
   else:
     assert False
 

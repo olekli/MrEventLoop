@@ -144,6 +144,23 @@ def test_simple_consumer_producer_loop_with_forwarder_single_connect():
   assert consumer.result == [ 'product', 'product' ]
   assert consumer_2.result == [ ]
 
+def test_simple_consumer_producer_loop_with_forwarder_lambda_connect():
+  consumer = Consumer()
+  consumer_2 = Consumer()
+  producer = Producer('product')
+  producer_2 = Producer('foo')
+
+  connect(consumer, 'request', consumer_2, lambda: consumer_2.onRequest())
+  connect(consumer_2, 'request', producer, lambda: producer.onRequest())
+  connect(producer, 'result', producer_2, lambda x: producer_2.onResult(x))
+  connect(producer_2, 'result', consumer, lambda x: consumer.onResult(x))
+
+  consumer.events.request()
+  consumer.events.request()
+
+  assert consumer.result == [ 'product', 'product' ]
+  assert consumer_2.result == [ ]
+
 def test_simple_consumer_producer_loop_with_forwarder_list_connect():
   consumer = Consumer()
   consumer_2 = Consumer()
