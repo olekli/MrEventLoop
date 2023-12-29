@@ -16,7 +16,6 @@ import logging
 logger = logging.getLogger(__name__)
 
 @emits('events', [])
-@has_event_loop('event_loop')
 class Client:
   def __init__(self, socket_path, event_names):
     self.socket_path = socket_path
@@ -46,11 +45,9 @@ class Client:
         logging.error(message)
         return None
 
-  async def __aenter__(self):
-    await self.event_loop.__aenter__()
+  def __enter__(self):
     self.socket.connect(self.socket_path)
     return self
 
-  async def __aexit__(self, exc_type, exc_value, traceback):
+  def __exit__(self, exc_type, exc_value, traceback):
     self.socket.close()
-    return await self.event_loop.__aexit__(exc_type, exc_value, traceback)

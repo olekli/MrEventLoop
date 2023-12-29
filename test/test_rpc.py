@@ -61,19 +61,20 @@ async def test_client_server():
     connect(consumer, 'request_produce_a', client, 'produceA')
     connect(consumer, 'request_produce_b', client, 'produceB')
 
-    async with server, client, producer.event_loop, consumer.event_loop:
-      coros = []
-      coros.append(consumer.requestProduceA())
-      coros.append(consumer.requestProduceA())
-      coros.append(consumer.requestProduceA())
-      coros.append(consumer.requestProduceB(0, 0))
-      coros.append(consumer.requestProduceB(2, 1))
-      coros.append(consumer.requestProduceA())
-      await asyncio.gather(*coros)
-      for i in range(0, 100):
-        if len(consumer.content) == 6:
-          break
-        await asyncio.sleep(0.01)
-      print('done')
+    async with server, producer.event_loop, consumer.event_loop:
+      with client:
+        coros = []
+        coros.append(consumer.requestProduceA())
+        coros.append(consumer.requestProduceA())
+        coros.append(consumer.requestProduceA())
+        coros.append(consumer.requestProduceB(0, 0))
+        coros.append(consumer.requestProduceB(2, 1))
+        coros.append(consumer.requestProduceA())
+        await asyncio.gather(*coros)
+        for i in range(0, 100):
+          if len(consumer.content) == 6:
+            break
+          await asyncio.sleep(0.01)
+        print('done')
 
     assert consumer.content == [ '1', '2', '3', '3', '6', '7' ]
