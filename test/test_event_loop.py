@@ -59,6 +59,24 @@ class Consumer:
     self.content.append(result)
 
 @has_event_loop('event_loop')
+class ConsumerException:
+  def __init__(self):
+    self.content = []
+
+  @slot
+  async def onProcessedResult(self, result):
+    raise RuntimeError('foo')
+
+@has_event_loop('event_loop')
+class ExceptionReceiver:
+  def __init__(self):
+    self.content = []
+
+  @slot
+  async def onException(self, e):
+    self.content.append(e)
+
+@has_event_loop('event_loop')
 class SlotWithReturnValue:
   @slot
   def call(self):
@@ -185,6 +203,31 @@ async def test_pipeline_multiple_loops_async():
     'product odd 9',
   ]:
     assert item in consumer.content
+
+@pytest.mark.asyncio
+async def test_pipeline_multiple_loops_async_exception():
+  producer = Producer()
+  processor_even = ProcessorEven()
+  processor_odd =  ProcessorOddAsync()
+  consumer = ConsumerException()
+  e_receiver = ExceptionReceiver()
+  connect(producer, None, processor_even, None)
+  connect(processor_even, None, processor_odd, None)
+  connect(processor_odd, None, consumer, None)
+  connect(consumer.event_loop, 'exception', e_receiver, 'onException')
+
+  async with e_receiver.event_loop:
+    async with consumer.event_loop:
+      async with processor_odd.event_loop:
+        async with processor_even.event_loop:
+          async with producer.event_loop:
+            for i in range(10):
+              producer.produce()
+
+  while tasks := [ t for t in asyncio.all_tasks() if t is not asyncio.current_task() ]:
+    await asyncio.gather(*tasks)
+
+  assert len(e_receiver.content) == 1
 
 @pytest.mark.asyncio
 async def test_pipeline_multiple_loops_async_defaults():
