@@ -12,4 +12,5 @@ def slotToEventName(slot_name):
   return '_'.join([ segment.lower() for segment in segments[1:] ])
 
 def eventToRequestName(event_name):
-  return eventToSlotName(f'request_{event_name}')
+  segments = event_name.split('_')
+  return ''.join([segments[0]] + [segment.capitalize() for segment in segments[1:]])

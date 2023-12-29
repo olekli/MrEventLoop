@@ -41,9 +41,10 @@ class Client:
     response = parse_json(await self.socket.recv_string())
     match response:
       case Ok(result, id):
-        getEvent(self, event_name)(result)
+        return result
       case Error(code, message, data, id):
         logging.error(message)
+        return None
 
   async def __aenter__(self):
     await self.event_loop.__aenter__()

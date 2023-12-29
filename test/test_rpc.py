@@ -27,7 +27,7 @@ class Producer:
     return str(self.counter)
 
 @has_event_loop('event_loop')
-@emits('events', [ 'request_produce_a', 'request_produce_b' ])
+@emits_bilaterally('events', [ 'request_produce_a', 'request_produce_b' ])
 class Consumer:
   def __init__(self):
     self.content = []
@@ -37,12 +37,12 @@ class Consumer:
     self.content.append(product)
 
   @slot
-  def requestProduceA(self):
-    self.events.request_produce_a()
+  async def requestProduceA(self):
+    self.content.append(await self.events.request_produce_a())
 
   @slot
-  def requestProduceB(self, x, y):
-    self.events.request_produce_b(x, y)
+  async def requestProduceB(self, x, y):
+    self.content.append(await self.events.request_produce_b(x, y))
 
 @pytest.mark.asyncio
 async def test_client_server():
@@ -58,20 +58,20 @@ async def test_client_server():
 
     connect(server, 'produce_a', producer, 'produceA')
     connect(server, 'produce_b', producer, 'produceB')
-    connect(consumer, 'request_produce_a', client, 'onRequestProduceA')
-    connect(consumer, 'request_produce_b', client, 'onRequestProduceB')
-    connect(client, 'produce_a', consumer, 'onProduce')
-    connect(client, 'produce_b', consumer, 'onProduce')
+    connect(consumer, 'request_produce_a', client, 'produceA')
+    connect(consumer, 'request_produce_b', client, 'produceB')
 
     async with server, client, producer.event_loop, consumer.event_loop:
-      consumer.requestProduceA()
-      consumer.requestProduceA()
-      consumer.requestProduceA()
-      consumer.requestProduceB(0, 0)
-      consumer.requestProduceB(2, 1)
-      consumer.requestProduceA()
+      coros = []
+      coros.append(consumer.requestProduceA())
+      coros.append(consumer.requestProduceA())
+      coros.append(consumer.requestProduceA())
+      coros.append(consumer.requestProduceB(0, 0))
+      coros.append(consumer.requestProduceB(2, 1))
+      coros.append(consumer.requestProduceA())
+      await asyncio.gather(*coros)
       for i in range(0, 100):
-        if len(consumer.content) == 3:
+        if len(consumer.content) == 6:
           break
         await asyncio.sleep(0.01)
       print('done')
