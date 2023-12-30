@@ -20,3 +20,7 @@ class SlotCall:
   async def _run(self):
     self._result = await make_awaitable(self._target(*self._args, **self._kwargs))
     self._result_ready.set()
+
+  async def _error(self):
+    self._result = await make_awaitable(None)
+    self._result_ready.set()

@@ -59,6 +59,7 @@ class EventLoop:
       except Exception as e:
         logger.error(traceback.format_exc())
         self.events.exception(e)
+        await slot_call._error()
         if self.exit_on_exception:
           return
       self.events.idle()
