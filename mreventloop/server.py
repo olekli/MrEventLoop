@@ -12,6 +12,7 @@ from mreventloop.event_loop import has_event_loop
 from mreventloop.attr import setEvents
 from mreventloop.bilateral_events import BilateralEvents
 from mreventloop.make_awaitable import make_awaitable
+from mreventloop.worker import Worker
 import logging
 
 logger = logging.getLogger(__name__)
@@ -21,8 +22,10 @@ async def successWrapper(result):
 
 @emits_bilaterally('events', [])
 @has_event_loop('event_loop')
-class Server:
+class Server(Worker):
   def __init__(self, socket_path, event_names):
+    super().__init__()
+
     self.socket_path = socket_path
     setEvents(self, BilateralEvents(event_names))
     self.methods = {
@@ -32,44 +35,29 @@ class Server:
     }
     self.context = zmq.asyncio.Context()
     self.socket = self.context.socket(zmq.REP)
-    self.stop_event = None
-    self.main = None
-
-  @slot
-  def stop(self):
-    assert self.stop_event
-    self.stop_event.set()
 
   async def run(self):
-    await self.event_loop.__aenter__()
     try:
-      self.stop_event = asyncio.Event()
-      self.socket.bind(self.socket_path)
-      while not self.stop_event.is_set():
-        try:
-          request = await asyncio.wait_for(self.socket.recv_string(), timeout = 1)
-        except asyncio.TimeoutError:
-          continue
-        logger.debug(f'received request: {request}')
-        response = await async_dispatch(
-          request,
-          methods = self.methods,
-          validator = lambda _: None
-        )
-        logger.debug(f'replying with: {response}')
-        await self.socket.send_string(response)
-    except Exception as e:
-      logger.error(traceback.format_exc())
-    self.socket.close()
-    await self.event_loop.__aexit__(None, None, None)
+      request = await asyncio.wait_for(self.socket.recv_string(), timeout = 1)
+    except asyncio.TimeoutError:
+      return
+    logger.debug(f'received request: {request}')
+    response = await async_dispatch(
+      request,
+      methods = self.methods,
+      validator = lambda _: None
+    )
+    logger.debug(f'replying with: {response}')
+    await self.socket.send_string(response)
 
   async def __aenter__(self):
+    await self.event_loop.__aenter__()
+    self.socket.bind(self.socket_path)
     self.main = asyncio.create_task(self.run())
+    await super().__aenter__()
     return self
 
   async def __aexit__(self, exc_type, exc_value, traceback):
-    self.stop()
-    await self.main
-
-  def __await__(self):
-    yield from self.main.__await__()
+    await self.event_loop.__aexit__(exc_type, exc_value, traceback)
+    return await super().__aexit__(exc_type, exc_value, traceback)
+    self.socket.close()

@@ -10,6 +10,7 @@ from mreventloop.spy import Spy
 from mreventloop.attr import setEventLoop, getEventLoop
 from mreventloop.client import Client
 from mreventloop.server import Server
+from mreventloop.worker import Worker
 
 __all__ = [
   'Events',
@@ -27,5 +28,6 @@ __all__ = [
   'setEventLoop',
   'getEventLoop',
   'Client',
-  'Server'
+  'Server',
+  'Worker',
 ]
