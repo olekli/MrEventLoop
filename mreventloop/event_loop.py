@@ -1,6 +1,7 @@
 # Copyright 2023 Ole Kliemann
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+import sys
 import asyncio
 import logging
 import traceback
@@ -61,7 +62,7 @@ class EventLoop:
         self.events.exception(e)
         await slot_call._error()
         if self.exit_on_exception:
-          return
+          sys.exit(1)
       self.events.idle()
 
 def has_event_loop(event_loop_attr):

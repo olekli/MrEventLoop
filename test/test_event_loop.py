@@ -210,6 +210,7 @@ async def test_pipeline_multiple_loops_async_exception():
   processor_even = ProcessorEven()
   processor_odd =  ProcessorOddAsync()
   consumer = ConsumerException()
+  setEventLoop(consumer, EventLoop(False))
   e_receiver = ExceptionReceiver()
   connect(producer, None, processor_even, None)
   connect(processor_even, None, processor_odd, None)
@@ -227,7 +228,7 @@ async def test_pipeline_multiple_loops_async_exception():
   while tasks := [ t for t in asyncio.all_tasks() if t is not asyncio.current_task() ]:
     await asyncio.gather(*tasks)
 
-  assert len(e_receiver.content) == 1
+  assert len(e_receiver.content) == 10
 
 @pytest.mark.asyncio
 async def test_pipeline_multiple_loops_async_defaults():
