@@ -5,11 +5,12 @@ import asyncio
 import zmq
 import zmq.asyncio
 import json
+from types import SimpleNamespace
 from jsonrpcclient import request, parse_json, Ok, Error
 from jsonrpcserver import dispatch, Success
 from mreventloop.names import eventToRequestName
 from mreventloop.events import Events
-from mreventloop.attr import getEvent
+from mreventloop.attr import getEvent, setEvents
 from mreventloop.decorators import emits, slot
 from mreventloop.event_loop import has_event_loop
 from mreventloop.worker import Worker
@@ -20,31 +21,28 @@ logger = logging.getLogger(__name__)
 @emits('events', [])
 @has_event_loop('event_loop')
 class Client(Worker):
-  def __init__(self, req_socket_path, sub_socket_path, req_event_names, sub_event_names):
+  def __init__(self, socket_path, req_event_names, pub_event_names):
     super().__init__()
 
-    self.req_socket_path = req_socket_path
-    self.sub_socket_path = sub_socket_path
-    self.events = Events(sub_event_names) if sub_event_names else None
+    self.req_socket_path = f'{socket_path}.req'
+    self.pub_socket_path = f'{socket_path}.pub'
     self.ctx = zmq.asyncio.Context()
     self.req_socket = self.ctx.socket(zmq.REQ)
-    self.sub_socket = self.ctx.socket(zmq.SUB) if self.sub_socket_path else None
+    self.pub_socket = self.ctx.socket(zmq.SUB)
 
-    for event_name, request_name in zip(
-      req_event_names,
-      [ eventToRequestName(event_name) for event_name in req_event_names ]
-    ):
+    setEvents(self, Events(pub_event_names))
+    self.request = SimpleNamespace()
+    for event_name in req_event_names:
       setattr(
-        self,
-        request_name,
+        self.request,
+        event_name,
         lambda *args, event_name=event_name, **kwargs: \
           self.requestFromServer(event_name, *args, **kwargs)
       )
-
     self.methods = {
       event_name: lambda *args, event_name=event_name, **kwargs: \
         Success(getattr(self.events, event_name)(*args, **kwargs))
-      for event_name in sub_event_names
+      for event_name in pub_event_names
     }
 
   @slot
@@ -55,14 +53,14 @@ class Client(Worker):
     response = parse_json(await self.req_socket.recv_string())
     match response:
       case Ok(result, id):
-        return result
+        return True
       case Error(code, message, data, id):
         logging.error(message)
-        return None
+        return False
 
   async def run(self):
     try:
-      message = await asyncio.wait_for(self.sub_socket.recv_string(), timeout = 1)
+      message = await asyncio.wait_for(self.pub_socket.recv_string(), timeout = 0.1)
     except asyncio.TimeoutError:
       return
     logger.debug(f'received published message: {message}')
@@ -74,18 +72,14 @@ class Client(Worker):
 
   async def __aenter__(self):
     self.req_socket.connect(self.req_socket_path)
-    if self.sub_socket:
-      self.sub_socket.connect(self.sub_socket_path)
-      self.sub_socket.setsockopt_string(zmq.SUBSCRIBE, '')
+    self.pub_socket.connect(self.pub_socket_path)
+    self.pub_socket.setsockopt_string(zmq.SUBSCRIBE, '')
     await self.event_loop.__aenter__()
-    if self.sub_socket:
-      await super().__aenter__()
+    await super().__aenter__()
     return self
 
   async def __aexit__(self, exc_type, exc_value, traceback):
-    if self.sub_socket:
-      await super().__aexit__(exc_type, exc_value, traceback)
+    await super().__aexit__(exc_type, exc_value, traceback)
     await self.event_loop.__aexit__(exc_type, exc_value, traceback)
     self.req_socket.close()
-    if self.sub_socket:
-      self.sub_socket.close()
+    self.pub_socket.close()
