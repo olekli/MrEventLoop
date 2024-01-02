@@ -11,6 +11,7 @@ from mreventloop.attr import setEventLoop, getEventLoop
 from mreventloop.client import Client
 from mreventloop.server import Server
 from mreventloop.worker import Worker
+from mreventloop.sync_event import SyncEvent
 
 __all__ = [
   'Events',
@@ -30,4 +31,5 @@ __all__ = [
   'Client',
   'Server',
   'Worker',
+  'SyncEvent',
 ]
