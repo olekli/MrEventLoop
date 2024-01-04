@@ -304,3 +304,40 @@ async def test_connected_bilateral_return_value_async():
   async with sender.event_loop, receiver.event_loop:
     result = sender.sendRequest('foo')
     assert await result == 'oof'
+
+@pytest.mark.asyncio
+async def test_event_loop_started_stopped():
+  producer = Producer()
+  processor_even = ProcessorEven()
+  processor_odd =  ProcessorOdd()
+  consumer = Consumer()
+  connect(producer, None, processor_even, None)
+  connect(processor_even, None, processor_odd, None)
+  connect(processor_odd, None, consumer, None)
+  connect(producer.event_loop, 'started', None, lambda r=range(10): [ producer.produce() for i in r ])
+  connect(producer.event_loop, 'stopped', None, lambda: consumer.content.append('final'))
+
+  async with consumer.event_loop:
+    async with processor_odd.event_loop:
+      async with processor_even.event_loop:
+        async with producer.event_loop:
+          pass
+
+  while tasks := [ t for t in asyncio.all_tasks() if t is not asyncio.current_task() ]:
+    await asyncio.gather(*tasks)
+
+  assert len(consumer.content) == 11
+  for item in [
+    'product even 0',
+    'product odd 1',
+    'product even 2',
+    'product odd 3',
+    'product even 4',
+    'product odd 5',
+    'product even 6',
+    'product odd 7',
+    'product even 8',
+    'product odd 9',
+    'final'
+  ]:
+    assert item in consumer.content

@@ -18,7 +18,7 @@ def has_asyncio_event_loop():
   except RuntimeError:
     return False
 
-@emits('events', [ 'active', 'idle', 'exception' ])
+@emits('events', [ 'active', 'idle', 'exception', 'started', 'stopped' ])
 class EventLoop:
   def __init__(self, exit_on_exception = True):
     self.exit_on_exception = exit_on_exception
@@ -49,6 +49,7 @@ class EventLoop:
       await self.main
 
   async def run(self):
+    self.events.started()
     self.events.idle()
     while not (self.closed and self.queue.empty()):
       slot_call = await self.queue.get()
@@ -64,6 +65,7 @@ class EventLoop:
         if self.exit_on_exception:
           sys.exit(1)
       self.events.idle()
+    self.events.stopped()
 
 def has_event_loop(event_loop_attr):
   def has_event_loop_(cls):
