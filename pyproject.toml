@@ -1,18 +1,29 @@
 [build-system]
-requires = ["setuptools", "wheel"]
+requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "MrEventLoop"
-version = "0.5.0"
+version = "0.6.1"
 authors = [
-    { name = "Ole Kliemann", email = "mail@olekliemann.de" }
+  { name = "Ole Kliemann", email = "mail@olekliemann.de" }
 ]
-description = "Very simple event loop"
+description = "Simple event system working seamlessly across sockets"
+dependencies = [
+  "pyzmq==25.1.2",
+  "jsonrpcclient==4.0.3",
+  "jsonrpcserver==5.0.9",
+]
 readme = "README.md"
 license = { file = "LICENSE" }
 requires-python = ">=3.6"
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
+  "Operating System :: OS Independent",
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Developers",
+]
 
 [project.urls]
 homepage = "https://github.com/olekli/MrEventLoop"
-

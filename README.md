@@ -1,10 +1,12 @@
 # MrEventLoop
-
 Simple event system for Python building on `asyncio` and working seamlessly across sockets.
 
+### Installation
+```
+pip install mreventloop
+```
 
 ### Emitting Events
-
 ```python
 from mreventloop import emits
 
@@ -28,9 +30,7 @@ disconnect(producer, 'produced')
 ```
 
 ### Event Loop and Slots
-
 Objects can have an event loop building on `asyncio`:
-
 ```python
 from mreventloop import has_event_loop, slot
 
@@ -71,9 +71,7 @@ async with consumer1.event_loop:
 ```
 All calls to slots in both `consumer1` and `consumer2` will be run sequentially.
 
-
 ### Async Slots
-
 Slots can also be coroutines:
 ```python
 import asyncio
@@ -89,7 +87,6 @@ The coroutine will be awaited inside the event loop.
 
 
 ### Awaiting Events
-
 Events can be awaited:
 ```python
 from mreventloop import SyncEvent
@@ -105,18 +102,13 @@ result = await sync_event
 print(f'{result}')
 ```
 
-
 ### Events of the Event Loop
-
 The event loop itself emits the following events:
-
 ```
 [ 'started', 'stopped', 'active', 'idle', 'exception' ]
 ```
 
-
 ### Exceptions on the Event Loop
-
 If an exception ocurrs executing a slot, the app will exit.
 This can be prevented by creating the loop manually with:
 ```python
@@ -130,7 +122,6 @@ In this case, any exception will be emitted through the `exception` event.
 
 
 ### Crossing Sockets
-
 Events and slots across multiple applications can be connected via sockets.
 This requires one instance of a `Broker` and any number of `Peer`s.
 A `Peer` subscribes to a number of events.
