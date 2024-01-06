@@ -95,9 +95,9 @@ async def test_pipeline_one_loop_async_unordered():
   processor_even = ProcessorEven()
   processor_odd =  ProcessorOddAsync()
   consumer = Consumer()
-  connect(producer, None, processor_even, None)
-  connect(processor_even, None, processor_odd, None)
-  connect(processor_odd, None, consumer, None)
+  connect(producer, processor_even)
+  connect(processor_even, processor_odd)
+  connect(processor_odd, consumer)
 
   async with EventLoop() as event_loop:
     setEventLoop(producer, event_loop)
@@ -132,9 +132,9 @@ async def test_pipeline_multiple_loops_async():
   processor_even = ProcessorEven()
   processor_odd =  ProcessorOddAsync()
   consumer = Consumer()
-  connect(producer, None, processor_even, None)
-  connect(processor_even, None, processor_odd, None)
-  connect(processor_odd, None, consumer, None)
+  connect(producer, processor_even)
+  connect(processor_even, processor_odd)
+  connect(processor_odd, consumer)
 
   async with EventLoop() as event_loop_3:
     async with EventLoop() as event_loop_2:
@@ -173,9 +173,9 @@ async def test_pipeline_multiple_loops_async_exception():
   consumer = ConsumerException()
   setEventLoop(consumer, EventLoop(False))
   e_receiver = ExceptionReceiver()
-  connect(producer, None, processor_even, None)
-  connect(processor_even, None, processor_odd, None)
-  connect(processor_odd, None, consumer, None)
+  connect(producer, processor_even)
+  connect(processor_even, processor_odd)
+  connect(processor_odd, consumer)
   connect(consumer.event_loop, 'exception', e_receiver, 'onException')
 
   async with e_receiver.event_loop:
@@ -197,9 +197,9 @@ async def test_pipeline_multiple_loops_async_defaults():
   processor_even = ProcessorEven()
   processor_odd =  ProcessorOdd()
   consumer = Consumer()
-  connect(producer, None, processor_even, None)
-  connect(processor_even, None, processor_odd, None)
-  connect(processor_odd, None, consumer, None)
+  connect(producer, processor_even)
+  connect(processor_even, processor_odd)
+  connect(processor_odd, consumer)
 
   async with consumer.event_loop:
     async with processor_odd.event_loop:
@@ -250,11 +250,11 @@ async def test_event_loop_started_stopped():
   processor_even = ProcessorEven()
   processor_odd =  ProcessorOdd()
   consumer = Consumer()
-  connect(producer, None, processor_even, None)
-  connect(processor_even, None, processor_odd, None)
-  connect(processor_odd, None, consumer, None)
-  connect(producer.event_loop, 'started', None, lambda r=range(10): [ producer.produce() for i in r ])
-  connect(producer.event_loop, 'stopped', None, lambda: consumer.content.append('final'))
+  connect(producer, processor_even)
+  connect(processor_even, processor_odd)
+  connect(processor_odd, consumer)
+  connect(producer.event_loop, 'started', lambda r=range(10): [ producer.produce() for i in r ])
+  connect(producer.event_loop, 'stopped', lambda: consumer.content.append('final'))
 
   async with consumer.event_loop:
     async with processor_odd.event_loop:

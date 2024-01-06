@@ -49,8 +49,8 @@ class Integrated:
   def __init__(self, producer):
     self.producer = producer
     self.result = []
-    connect(self, None, self.producer, None)
-    connect(self.producer, None, self, None)
+    connect(self, self.producer)
+    connect(self.producer, self)
 
   def run(self):
     self.events.request()
@@ -91,8 +91,8 @@ def test_simple_consumer_producer_loop_single_connect():
 def test_simple_consumer_producer_loop_blind_connect():
   consumer = Consumer()
   producer = Producer('product')
-  connect(consumer, None, producer, None)
-  connect(producer, None, consumer, None)
+  connect(consumer, producer)
+  connect(producer, consumer)
 
   consumer.events.request()
   consumer.events.request()
@@ -133,10 +133,10 @@ def test_simple_consumer_producer_loop_with_forwarder_lambda_connect():
   producer = Producer('product')
   producer_2 = Producer('foo')
 
-  connect(consumer, 'request', consumer_2, lambda: consumer_2.onRequest())
-  connect(consumer_2, 'request', producer, lambda: producer.onRequest())
-  connect(producer, 'result', producer_2, lambda x: producer_2.onResult(x))
-  connect(producer_2, 'result', consumer, lambda x: consumer.onResult(x))
+  connect(consumer, 'request', lambda: consumer_2.onRequest())
+  connect(consumer_2, 'request', lambda: producer.onRequest())
+  connect(producer, 'result', lambda x: producer_2.onResult(x))
+  connect(producer_2, 'result', lambda x: consumer.onResult(x))
 
   consumer.events.request()
   consumer.events.request()
@@ -167,10 +167,10 @@ def test_simple_consumer_producer_loop_with_forwarder_blind_connect():
   producer = Producer('product')
   producer_2 = Producer('foo')
 
-  connect(consumer, None, consumer_2, None)
-  connect(consumer_2, None, producer, None)
-  connect(producer, None, producer_2, None)
-  connect(producer_2, None, consumer, None)
+  connect(consumer, consumer_2)
+  connect(consumer_2, producer)
+  connect(producer, producer_2)
+  connect(producer_2, consumer)
 
   consumer.events.request()
   consumer.events.request()
@@ -207,7 +207,7 @@ def test_disconnect():
 
   assert receiver.content == [ 'foo' ]
 
-  disconnect(sender, 'request')
+  disconnect(sender, 'request', receiver, 'onRequest')
 
   sender.sendRequest('bar')
 
