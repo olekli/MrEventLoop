@@ -10,28 +10,28 @@ logger = logging.getLogger(__name__)
 
 class Worker:
   def __init__(self):
-    self.stop_event = None
+    self.stop_event = asyncio.Event()
     self.main = None
 
-  async def run(self):
+  async def _run(self):
     pass
 
-  async def _run(self):
-    self.stop_event = asyncio.Event()
+  async def _run_task(self):
     while not self.stop_event.is_set():
       try:
-        await self.run()
+        await self._run()
       except Exception as e:
         logger.error(traceback.format_exc())
         sys.exit(1)
 
   async def __aenter__(self):
-    self.main = asyncio.create_task(self._run())
+    self.main = asyncio.create_task(self._run_task())
+    logger.debug('starting')
     return self
 
   async def __aexit__(self, exc_type, exc_value, traceback):
-    assert self.stop_event
     self.stop_event.set()
+    logger.debug('stopping')
     await self.main
 
   def __await__(self):

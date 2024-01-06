@@ -8,8 +8,8 @@ from mreventloop.event_loop import EventLoop, has_event_loop
 from mreventloop.connect import connect, disconnect
 from mreventloop.spy import Spy
 from mreventloop.attr import setEventLoop, getEventLoop
-from mreventloop.client import Client
-from mreventloop.server import Server
+from mreventloop.peer import Peer
+from mreventloop.broker import Broker
 from mreventloop.worker import Worker
 from mreventloop.sync_event import SyncEvent
 
@@ -28,8 +28,8 @@ __all__ = [
   'Spy',
   'setEventLoop',
   'getEventLoop',
-  'Client',
-  'Server',
+  'Peer',
+  'Broker',
   'Worker',
   'SyncEvent',
 ]
