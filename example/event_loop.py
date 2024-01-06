@@ -1,3 +1,6 @@
+# Copyright 2023 Ole Kliemann
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 import asyncio
 from mreventloop import emits, connect
 from mreventloop import has_event_loop, slot

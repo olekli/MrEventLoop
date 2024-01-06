@@ -1,6 +1,6 @@
 # MrEventLoop
 
-Simple event system for Python.
+Simple event system for Python building on `asyncio` and working seamlessly across sockets.
 
 
 ### Emitting Events
@@ -19,10 +19,8 @@ You can now connect a callback to the event:
 from mreventloop import connect
 
 producer = Producer()
-connect(producer, 'produced', None, lambda product: print(f'{product}'))
+connect(producer, 'produced', lambda product: print(f'{product}'))
 ```
-The receiver is `None` in this case as there is no receiving object, just a callback.
-
 You can disconnect all listeners from an event:
 ```python
 from mreventloop import disconnect
@@ -129,3 +127,33 @@ consumer.event_loop = EventLoop(exit_on_exception = False)
 In this case, any exception will be emitted through the `exception` event.
 
 (The general idea here is to just not use exceptions.)
+
+
+### Crossing Sockets
+
+Events and slots across multiple applications can be connected via sockets.
+This requires one instance of a `Broker` and any number of `Peer`s.
+A `Peer` subscribes to a number of events.
+If any other `Peer` publishes such events,
+they will be emitted by the subscribing `Peer`.
+
+```python
+from mreventloop import Broker, Peer
+
+in_socket_path = 'ipc:///tmp/mreventloop_test_in.sock'
+out_socket_path = 'ipc:///tmp/mreventloop_test_out.sock'
+
+producer_peer = Peer(in_socket_path, out_socket_path, [ 'request_product' ], [ 'produced' ])
+consumer_peer = Peer(in_socket_path, out_socket_path, [ 'produced' ], [ 'request_product' ])
+async with Broker(in_socket_path, out_socket_path), producer_peer, consumer_peer:
+  consumer = Consumer()
+  connect(consumer, 'request_product', consumer_peer.publish, 'request_product')
+  connect(consumer_peer, 'product', consumer, 'onProduct')
+
+  producer = Producer()
+  connect(producer, 'produce', producer_peer.publish, 'produce')
+  connect(producer_peer, 'request_product', producer, 'onRequestProduct')
+
+  async with producer.event_loop, consumer.event_loop:
+    consumer.events.request_product()
+```
