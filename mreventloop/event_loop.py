@@ -22,7 +22,7 @@ def has_asyncio_event_loop():
 class EventLoop:
   def __init__(self, exit_on_exception = True):
     self.exit_on_exception = exit_on_exception
-    self.queue = None
+    self.queue = asyncio.Queue()
     self.asyncio_event_loop = None
     self.main = None
     self.closed = False
@@ -38,7 +38,6 @@ class EventLoop:
 
   async def __aenter__(self):
     self.asyncio_event_loop = asyncio.get_event_loop()
-    self.queue = asyncio.Queue()
     self.main = asyncio.create_task(self.run())
     return self
 
