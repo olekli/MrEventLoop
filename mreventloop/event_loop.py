@@ -23,21 +23,17 @@ class EventLoop:
   def __init__(self, exit_on_exception = True):
     self.exit_on_exception = exit_on_exception
     self.queue = asyncio.Queue()
-    self.asyncio_event_loop = None
     self.main = None
     self.closed = False
 
   def enqueue(self, target, *args, **kwargs):
     assert self.queue
-    assert self.asyncio_event_loop
     assert has_asyncio_event_loop()
-    assert asyncio.get_event_loop() is self.asyncio_event_loop
     slot_call = SlotCall(target, args, kwargs)
     self.queue.put_nowait(slot_call)
     return slot_call
 
   async def __aenter__(self):
-    self.asyncio_event_loop = asyncio.get_event_loop()
     self.main = asyncio.create_task(self.run())
     return self
 
