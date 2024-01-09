@@ -1,5 +1,5 @@
-# Copyright 2023 Ole Kliemann
-# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright 2024 Ole Kliemann
+# SPDX-License-Identifier: Apache-2.0
 
 MREVENTLOOP_EVENTS_ATTR = '__mreventloop_events_attr__'
 MREVENTLOOP_EVENT_LOOP_ATTR = '__mreventloop_event_loop_attr__'

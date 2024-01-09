@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "MrEventLoop"
-version = "0.6.2"
+version = "0.7.0"
 authors = [
   { name = "Ole Kliemann", email = "mail@olekliemann.de" }
 ]
@@ -19,7 +19,7 @@ license = { file = "LICENSE" }
 requires-python = ">=3.6"
 classifiers = [
   "Programming Language :: Python :: 3",
-  "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
+  "License :: OSI Approved :: Apache Software License",
   "Operating System :: OS Independent",
   "Development Status :: 4 - Beta",
   "Intended Audience :: Developers",
