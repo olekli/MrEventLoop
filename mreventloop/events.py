@@ -21,11 +21,12 @@ class Event:
 
 class Events:
   def __init__(self, event_names):
-    self.__event_names__ = event_names
+    self.__event_names__ = []
 
     for event_name in event_names:
-      setattr(
-        self,
-        event_name,
-        Event()
-      )
+      self += event_name
+
+  def __iadd__(self, event_name):
+    self.__event_names__.append(event_name)
+    setattr(self, event_name, Event())
+    return self

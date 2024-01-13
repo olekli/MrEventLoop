@@ -48,6 +48,26 @@ def test_dispatches_correctly_with_multiple_listeners_on_multiple_events():
   assert listener2_1.received == [ 'baz', '123' ]
   assert listener2_2.received == [ 'baz', '123' ]
 
+def test_dispatches_correctly_after_adding_event():
+  listener1_1 = Listener()
+  listener1_2 = Listener()
+  listener2_1 = Listener()
+  listener2_2 = Listener()
+  events = Events([ 'event1' ])
+  events += 'event2'
+  events.event1.addListener(listener1_1.slot)
+  events.event2.addListener(listener2_1.slot)
+  events.event1.addListener(listener1_2.slot)
+  events.event2.addListener(listener2_2.slot)
+  events.event1('foo')
+  events.event2('baz')
+  events.event1('bar')
+  events.event2('123')
+  assert listener1_1.received == [ 'foo', 'bar' ]
+  assert listener1_2.received == [ 'foo', 'bar' ]
+  assert listener2_1.received == [ 'baz', '123' ]
+  assert listener2_2.received == [ 'baz', '123' ]
+
 def test_dispatches_correctly_after_removing_listener():
   listener1_1 = Listener()
   listener1_2 = Listener()
